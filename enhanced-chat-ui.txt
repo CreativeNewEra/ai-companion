@@ -1,0 +1,256 @@
+// frontend/src/components/ChatInterface.tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Send, 
+  Image as ImageIcon, 
+  Smile, 
+  Settings, 
+  MessageSquare, 
+  Brain, 
+  Database 
+} from 'lucide-react';
+
+interface Message {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: Date;
+  emotionalContext?: Record<string, number>;
+}
+
+interface ChatInterfaceProps {
+  messages: Message[];
+  onSendMessage: (content: string) => Promise<void>;
+  onImageRequest?: (prompt: string) => Promise<void>;
+  isTyping?: boolean;
+  personality?: Record<string, number>;
+  mood?: Record<string, number>;
+}
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  messages,
+  onSendMessage,
+  onImageRequest,
+  isTyping = false,
+  personality,
+  mood
+}) => {
+  const [input, setInput] = useState('');
+  const [imageMode, setImageMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    
+    if (imageMode && onImageRequest) {
+      await onImageRequest(input);
+    } else {
+      await onSendMessage(input);
+    }
+    
+    setInput('');
+  };
+
+  // Message bubble component
+  const MessageBubble = ({ message }: { message: Message }) => {
+    const isUser = message.role === 'user';
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
+      >
+        <div
+          className={`max-w-[70%] rounded-lg p-3 ${
+            isUser
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+          }`}
+        >
+          <div>{message.content}</div>
+          
+          <div className="text-xs mt-2 opacity-70">
+            {message.timestamp.toLocaleTimeString()}
+          </div>
+          
+          {message.emotionalContext && !isUser && (
+            <div className="mt-1 text-xs flex gap-1 flex-wrap">
+              {Object.entries(message.emotionalContext)
+                .filter(([_, value]) => value > 0.2)
+                .slice(0, 3)
+                .map(([emotion, value]) => (
+                  <span 
+                    key={emotion}
+                    className="px-1 rounded bg-opacity-20 bg-gray-500"
+                  >
+                    {emotion}: {(value * 100).toFixed(0)}%
+                  </span>
+                ))
+              }
+            </div>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+  
+  // Typing indicator
+  const TypingIndicator = () => (
+    <div className="flex items-center space-x-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 w-20 mb-4">
+      <div className="flex space-x-1">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="w-2 h-2 bg-gray-400 rounded-full"
+            animate={{ y: [0, -5, 0] }}
+            transition={{
+              duration: 0.6,
+              repeat: Infinity,
+              delay: i * 0.2
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+  
+  // Personality/Mood visualization sidebar
+  const Sidebar = () => (
+    <AnimatePresence>
+      {sidebarOpen && (
+        <motion.div
+          initial={{ x: '100%', opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: '100%', opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="absolute right-0 top-0 h-full w-64 bg-white dark:bg-gray-900 shadow-lg p-4 z-10"
+        >
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+          >
+            &times;
+          </button>
+          
+          <div className="mt-8">
+            <h3 className="text-lg font-medium mb-4">Personality</h3>
+            {personality && Object.entries(personality).map(([trait, value]) => (
+              <div key={trait} className="mb-3">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm capitalize">{trait}</span>
+                  <span className="text-sm">{(value * 100).toFixed(0)}%</span>
+                </div>
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${value * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+            
+            {mood && (
+              <>
+                <h3 className="text-lg font-medium mt-6 mb-4">Mood</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(mood).map(([moodType, value]) => (
+                    <div key={moodType} className="p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      <div className="text-sm capitalize mb-1">{moodType}</div>
+                      <div className="text-lg font-semibold">
+                        {(value * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  return (
+    <div className="flex flex-col h-full relative">
+      <Sidebar />
+      
+      {/* Header */}
+      <div className="flex justify-between items-center p-4 border-b">
+        <h2 className="text-lg font-semibold">AI Companion</h2>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+          >
+            <Brain className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+            <Settings className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))}
+        {isTyping && <TypingIndicator />}
+        <div ref={messagesEndRef} />
+      </div>
+      
+      {/* Input area */}
+      <div className="border-t p-4">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setImageMode(!imageMode)}
+            className={`p-2 rounded-full ${
+              imageMode 
+                ? 'bg-purple-100 text-purple-600'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <ImageIcon className="w-5 h-5" />
+          </button>
+          
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            placeholder={imageMode ? "Describe an image to generate..." : "Type a message..."}
+            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          
+          <button
+            onClick={handleSend}
+            disabled={!input.trim()}
+            className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
+        
+        {imageMode && (
+          <div className="mt-2 text-sm text-purple-600">
+            <span className="flex items-center">
+              <ImageIcon className="w-4 h-4 mr-1" />
+              Image generation mode active
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ChatInterface;
