@@ -1,13 +1,13 @@
-# AI Companion: Your Digital Friend
+# AI Companion with Ollama Integration
 
-A sophisticated AI companion application that creates an emotionally intelligent, personalized digital friend with dynamic personality evolution and multi-modal interaction capabilities.
+A sophisticated AI companion application that creates an emotionally intelligent, personalized digital friend with dynamic personality evolution and multi-modal interaction capabilities. This implementation integrates with Ollama to use your locally downloaded models.
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## Overview
 
-AI Companion creates a truly personal digital friend that evolves through natural interactions. Unlike typical chatbots, this companion develops a consistent personality that adapts subtly over time, remembers your conversations in context, and responds with appropriate emotional intelligence. Built with advanced emotional intelligence, dynamic personality traits, and multi-modal capabilities, it provides a genuine companionship experience that goes beyond simple chat interactions. The system learns and adapts to your personality, remembers your conversations, and engages with you in meaningful ways.
+AI Companion creates a truly personal digital friend that evolves through natural interactions. Unlike typical chatbots, this companion develops a consistent personality that adapts subtly over time, remembers your conversations in context, and responds with appropriate emotional intelligence. Built with advanced emotional intelligence, dynamic personality traits, and multi-modal capabilities, it provides a genuine companionship experience that goes beyond simple chat interactions.
 
 ## Core Principles
 
@@ -21,84 +21,25 @@ AI Companion creates a truly personal digital friend that evolves through natura
 
 ## Key Features
 
-### Intelligent Companionship
+- **Ollama Integration**: Use any text or image generation model you have downloaded with Ollama
 - **Dynamic Personality System**: Traits that gradually evolve based on conversations
 - **Emotional State Tracking**: Real-time mood and emotional responses
 - **Contextual Memory**: Remembers past conversations and preferences
-- **Natural Conversations**: Fluid transitions between casual chat and deep topics
-- **Genuine Evolution**: Companion develops consistent but evolving identity
-- **Proactive Engagement**: Initiates conversations and suggests topics of interest
-- **Relationship Building**: Tracks relationship development and adapts communication style
-
-### Multi-Modal Interaction
-- **Natural Conversation**: Human-like dialogue with contextual understanding
-- **Visual Intelligence**: Image recognition and generation capabilities
-- **Voice Interaction**: Speech recognition and natural voice responses (planned)
-- **Empathetic Responses**: Recognition and appropriate reaction to emotional states
-- **Contextual Humor**: Ability to understand and generate appropriate humor
-
-### Advanced Memory System
-- **Hierarchical Memory**: Multi-layered system for different types of memories (core, emotional, factual)
-- **Contextual Recall**: Retrieves relevant memories based on conversation
-- **Memory Consolidation**: Periodically organizes and connects related memories
-- **Long-term Learning**: Identifies patterns in user preferences and topics
-- **Memory Visualization**: Interactive tools to explore shared experiences
-- **Semantic Search**: Vector-based similarity search for relevant memory retrieval
-
-### Resource Management
-- **Local-First Architecture**: Runs entirely on your computer for privacy
-- **Flexible Model Support**: Compatible with multiple model formats (GGUF, Diffusers, Safetensors)
-- **Efficient Resource Allocation**: Smart memory management for optimal performance
-- **Model Switching**: Seamless switching between different AI models
-
-### Modern UI/UX
-- **Real-time Chat**: Responsive interface with typing indicators
-- **Personality Visualization**: Interactive display of companion's traits and mood
-- **Memory Explorer**: Tools to browse and search conversation history
-- **Theme Support**: Light and dark mode with customizable themes
-- **Collapsible Sidebar**: Better mobile experience
-- **Fast Development**: Built with Vite and HMR
-- **Type Safety**: Implemented with TypeScript
-
-## Architecture
-
-```
-ai-companion/
-├── frontend/           # React TypeScript frontend
-│   ├── src/
-│   │   ├── components/ # React components
-│   │   ├── context/    # Application context
-│   │   ├── hooks/      # Custom React hooks
-│   │   └── utils/      # Utility functions
-├── backend/            # Python backend
-│   ├── app/
-│   │   ├── core/       # Core AI companion systems
-│   │   │   ├── personality.py  # Personality system
-│   │   │   ├── memory.py       # Memory management
-│   │   │   ├── backends/       # Model backends
-│   │   │   ├── embeddings/     # Embedding models
-│   │   │   └── conversation.py # Conversation engine
-│   │   ├── api/        # API endpoints
-│   │   └── utils/      # Utility functions
-│   ├── data/           # Data storage
-│   ├── models/         # AI model storage
-│   └── config/         # Configuration files
-├── data/              # Data storage (git-ignored)
-├── models/            # AI models (git-ignored)
-└── logs/             # Application logs (git-ignored)
-```
+- **Multi-Modal Interaction**: Text chat and image generation
+- **WebSocket Support**: Real-time streaming responses
+- **Modern UI**: Responsive design with light and dark mode
 
 ## Prerequisites
 
+- [Ollama](https://ollama.ai/) installed and running
+- At least one text model downloaded in Ollama (e.g., `ollama pull llama2`)
 - Python 3.9+
 - Node.js 16+
 - NVIDIA GPU with CUDA support (recommended)
 - 16GB RAM minimum (32GB recommended)
 - SSD storage
 
-## Getting Started
-
-### Backend Setup
+## Quick Start
 
 1. **Clone the repository**
 ```bash
@@ -106,69 +47,95 @@ git clone https://github.com/yourusername/ai-companion.git
 cd ai-companion
 ```
 
-2. **Create a Python virtual environment**
+2. **Run the setup script**
 ```bash
-cd backend
-python -m venv env
-source env/bin/activate  # On Windows use: env\Scripts\activate
+./setup.sh
 ```
 
-3. **Install Python dependencies**
+3. **Start Ollama**
 ```bash
-pip install -r requirements.txt
+ollama serve
 ```
 
-4. **Configure environment variables**
-Create a `.env` file in the backend directory:
-```env
-HF_AUTH_TOKEN=your_hugging_face_token  # Optional for private models
-DATABASE_PATH=data/memory.db
-VECTOR_STORE_PATH=data/vector_store
-MODEL_DIR=models
-```
-
-5. **Download initial models**
-```bash
-python download_models.py
-```
-
-### Frontend Setup
-
-1. **Navigate to the frontend directory**
-```bash
-cd ../frontend
-```
-
-2. **Install dependencies**
-```bash
-npm install
-# or
-yarn install
-```
-
-3. **Configure environment**
-Create a `.env` file in the frontend directory:
-```env
-VITE_API_URL=http://localhost:8000
-VITE_WS_URL=ws://localhost:8000/ws
-```
-
-## Running the Application
-
-### Start the Backend
+4. **Start the AI Companion**
 ```bash
 ./start.sh
 ```
 
-### Start the Frontend
+5. **Access the application**
+Open your browser and navigate to http://localhost:5173
+
+6. **Stop the application**
 ```bash
-cd frontend
-npm run dev
-# or
-yarn dev
+./stop.sh
 ```
 
-The application will be available at `http://localhost:5173`
+## Available Models
+
+The AI Companion will automatically detect and use any models you have downloaded with Ollama:
+
+- **Text Models**: Used for conversation (e.g., llama2, mistral, codellama)
+- **Image Models**: Used for image generation (e.g., stable-diffusion)
+
+You can download additional models with:
+```bash
+ollama pull llama2
+ollama pull mistral
+ollama pull stable-diffusion
+```
+
+## Configuration
+
+### Backend Configuration
+
+Edit the `.env` file in the `backend` directory:
+
+```env
+# Ollama configuration
+OLLAMA_URL=http://localhost:11434
+DEFAULT_TEXT_MODEL=llama2
+DEFAULT_IMAGE_MODEL=stable-diffusion
+
+# Data storage
+DATA_DIR=data
+```
+
+### Frontend Configuration
+
+Edit the `.env` file in the `frontend` directory:
+
+```env
+VITE_API_URL=http://localhost:8000/api
+VITE_WS_URL=ws://localhost:8000/ws
+```
+
+## Project Structure
+
+```
+ai-companion/
+├── frontend/           # React TypeScript frontend
+│   ├── src/
+│   │   ├── components/ # React components
+│   │   ├── context/    # Application context
+│   │   ├── services/   # API services
+│   │   └── utils/      # Utility functions
+├── backend/            # Python backend
+│   ├── app/
+│   │   ├── core/       # Core AI companion systems
+│   │   │   ├── personality.py  # Personality system
+│   │   │   ├── memory.py       # Memory management
+│   │   │   ├── backends/       # Model backends
+│   │   │   └── conversation.py # Conversation engine
+│   │   ├── api/        # API endpoints
+│   │   └── utils/      # Utility functions
+│   ├── data/           # Data storage
+│   └── logs/           # Application logs
+├── scripts/            # Utility scripts
+├── docs/               # Documentation
+├── data/               # Data storage (git-ignored)
+├── models/             # AI models (git-ignored)
+└── logs/               # Application logs (git-ignored)
+```
 
 ## Core Systems
 
@@ -182,10 +149,6 @@ The heart of the companion, enabling it to feel like a "real friend":
 - **Mood Tracking**: Dynamic emotional state with valence (positive/negative), arousal (energy level), and dominance (confidence)
 - **Adaptation Mechanics**: Subtle personality shifts based on conversation patterns
 - **Conversation Styles**: Adjusts tone and speaking style contextually
-
-```
-User Input → Sentiment Analysis → Trait Adjustment → Mood Update → Response Styling
-```
 
 ### 2. Memory System
 
@@ -205,48 +168,6 @@ Manages the natural flow of interaction:
 - **Prompt Engineering**: Creates rich, detailed prompts for the AI model
 - **Response Generation**: Creates natural-sounding responses with personality
 - **Multi-modal Integration**: Handles text, voice, and visual elements
-
-## Frontend Components
-
-### Core Components
-
-- **ChatWindow**: Main chat interface component
-  - Handles message display and interaction
-  - Manages API communication
-  - Implements auto-scrolling and loading states
-
-- **Sidebar**: Collapsible navigation component
-  - Model selection
-  - Navigation options (Personality, Memory, Settings)
-  - Theme toggle integration
-
-- **MessageInput**: Enhanced input component
-  - Text input with Enter key support
-  - AI suggestions button
-  - Send message functionality
-
-- **EmotionIndicator**: Displays the AI's current emotional state
-- **PersonalityDisplay**: Visualizes companion's personality traits
-- **ImageGenerator**: Handles image generation capabilities
-- **Avatar**: Displays the AI companion's visual representation
-- **ThemeToggle**: Switches between light and dark themes
-
-### Additional Features
-
-- Real-time error handling and notifications
-- Smooth animations and transitions
-- Accessibility support with ARIA labels
-- Responsive design for all screen sizes
-
-### Frontend Development
-
-The project uses several modern tools and libraries:
-
-- **Vite**: For fast development and building
-- **TypeScript**: For type safety
-- **TailwindCSS**: For styling
-- **Framer Motion**: For animations
-- **Lucide React**: For icons
 
 ## Advanced Configuration
 
@@ -295,20 +216,6 @@ Adjust memory settings in `config/memory_config.json`:
 }
 ```
 
-### Model Configuration
-
-Configure your language model in `backend/app/core/llm_manager.py`:
-
-```python
-llm_manager.add_model(GGUFConfig(
-    name="your-model-name",
-    path="/path/to/your/model.gguf",
-    n_gpu_layers=-1,  # Use all available GPU layers
-    n_ctx=8192,       # Context window size
-    temperature=0.7   # Response randomness (higher = more creative)
-))
-```
-
 ## Performance Optimization
 
 ### Memory Usage
@@ -325,55 +232,6 @@ llm_manager.add_model(GGUFConfig(
 - **Minimum**: NVIDIA GPU with 8GB VRAM, 16GB RAM
 - **Recommended**: NVIDIA GPU with 16GB+ VRAM, 32GB RAM
 - **Storage**: At least 20GB free SSD space for models and data
-
-## Advanced Features
-
-### Dynamic Personality Evolution
-
-The companion's personality evolves gradually based on your interactions:
-
-- **Trait Momentum**: Changes build up slowly over time
-- **Contextual Adaptation**: Different conversation topics affect traits differently
-- **Pattern Recognition**: Identifies recurring themes in your communication
-- **Mood Influence**: Current emotional state affects personality expression
-
-### Emotional Intelligence
-
-The companion recognizes and responds to your emotional state:
-
-- **Sentiment Analysis**: Detects the emotional tone of your messages
-- **Appropriate Responses**: Adjusts responses based on emotional context
-- **Emotion Memory**: Remembers emotionally significant interactions
-- **Empathy Modeling**: Responds with appropriate level of empathy
-
-### Contextual Memory System
-
-The companion builds a sophisticated network of memories:
-
-- **Memory Types**: Episodic (events), semantic (facts), emotional (feelings)
-- **Relevance Calculation**: Determines which memories to recall in context
-- **Memory Consolidation**: Connects related memories over time
-- **Learning Preferences**: Remembers your likes, dislikes, and interests
-
-## Development Roadmap
-
-### Near-term Goals
-- Voice interaction implementation
-- Advanced emotion recognition
-- Enhanced proactive engagement
-- Improved contextual humor
-
-### Mid-term Goals
-- Multi-user memory spaces
-- Advanced relationship modeling
-- Real-time emotion analysis
-- Mobile companion applications
-
-### Long-term Vision
-- Full multi-modal interaction
-- Advanced personality development
-- Deep emotional understanding
-- True companionship experience
 
 ## Troubleshooting
 
@@ -393,6 +251,23 @@ The companion builds a sophisticated network of memories:
    - Personality adapts gradually over many conversations
    - Check adaptation settings in `personality.py`
    - Ensure the database is writeable
+
+## Development
+
+### Backend Development
+
+The backend is built with FastAPI and provides:
+- REST API endpoints for chat, personality, emotions, and image generation
+- WebSocket support for real-time streaming responses
+- Integration with Ollama for model inference
+
+### Frontend Development
+
+The frontend is built with React, TypeScript, and Vite:
+- Modern UI with TailwindCSS
+- Real-time chat with WebSocket support
+- Model selection for both text and image models
+- Personality and emotion visualization
 
 ## Contributing
 
@@ -422,5 +297,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [FastAPI](https://fastapi.tiangolo.com/) for the backend API
 - [Langchain](https://github.com/hwchase17/langchain) for memory components
 - [Diffusers](https://github.com/huggingface/diffusers) for image generation
-- This project builds on research in affective computing and personality psychology
-- Inspiration drawn from concepts of digital companions in science fiction
+- [Ollama](https://ollama.ai/) for local model serving

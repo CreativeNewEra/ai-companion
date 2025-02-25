@@ -1,4 +1,85 @@
-# Python
+# Python# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.pnpm-debug.log
+.npm
+.yarn
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Data and logs
+data/
+logs/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# Models
+models/
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build files
+dist/
+build/
+# Virtual Environments
+venv/
+.venv/
+.env/
+virtualenv/
+
+# Python Coverage/Testing
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.coverage.*
+
+# Python Bytecode
 __pycache__/
 *.py[cod]
 *$py.class
@@ -31,6 +112,35 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# TypeScript
+*.tsbuildinfo
+.next
+coverage/
+
+# Build outputs
+dist/
+build/
+out/
+.cache/
+
+# Operating System
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Debug files
+debug.log
+npm-debug.log
+yarn-debug.log
+*.debug
+
+# Local Environment Files
+.env.*
+!.env.example
 
 # IDE
 .idea/

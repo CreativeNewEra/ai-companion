@@ -24,16 +24,16 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
 
   useEffect(() => {
     // Fetch initial messages
-    fetch(`${modelService.baseUrl}/messages`)
-      .then(res => res.json())
+    modelService.getMessages()
       .then(data => {
         setMessages(data.map((msg: any) => ({
-          id: crypto.randomUUID(),
+          id: msg.id || crypto.randomUUID(),
           content: msg.content,
-          isUser: msg.is_user,
+          isUser: msg.isUser,
           timestamp: msg.timestamp,
           status: 'sent'
         })));
@@ -42,6 +42,45 @@ function App() {
         console.error('Failed to fetch messages:', err);
         setError('Failed to load messages');
       });
+      
+    // Setup WebSocket connection
+    const ws = modelService.createWebSocketConnection();
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'typing_indicator') {
+          // Handle typing indicator
+          setIsLoading(data.is_typing);
+        } else if (data.type === 'response' || data.type === 'response_complete') {
+          // Handle complete response
+          const aiMessage: Message = {
+            id: crypto.randomUUID(),
+            content: data.content,
+            isUser: false,
+            timestamp: new Date().toISOString(),
+            status: 'sent',
+            type: 'text'
+          };
+          setMessages(prev => [...prev, aiMessage]);
+          setIsLoading(false);
+        } else if (data.type === 'error') {
+          // Handle error
+          setError(data.message || 'An error occurred');
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
+    
+    setWebSocket(ws);
+    
+    // Cleanup WebSocket on unmount
+    return () => {
+      ws.close();
+    };
   }, []);
 
   const handleSubmit = async (content: string) => {
@@ -85,25 +124,42 @@ function App() {
           }
         };
         setMessages(prev => [...prev, aiMessage]);
+        setIsLoading(false);
       } else {
-        // Regular chat message
-        const data = await modelService.sendMessage(content);
-        
-        // Update user message status
-        setMessages(prev => prev.map(msg => 
-          msg.id === userMessage.id ? { ...msg, status: 'sent' } : msg
-        ));
+        // Regular chat message - try WebSocket first, fall back to HTTP
+        if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+          // Update user message status
+          setMessages(prev => prev.map(msg => 
+            msg.id === userMessage.id ? { ...msg, status: 'sent' } : msg
+          ));
+          
+          // Send via WebSocket
+          webSocket.send(JSON.stringify({
+            content,
+            model_id: modelService.getCurrentTextModel(),
+            stream: true
+          }));
+        } else {
+          // Fall back to HTTP API
+          const data = await modelService.sendMessage(content);
+          
+          // Update user message status
+          setMessages(prev => prev.map(msg => 
+            msg.id === userMessage.id ? { ...msg, status: 'sent' } : msg
+          ));
 
-        // Add AI response
-        const aiMessage: Message = {
-          id: crypto.randomUUID(),
-          content: data.response,
-          isUser: false,
-          timestamp: new Date().toISOString(),
-          status: 'sent',
-          type: 'text'
-        };
-        setMessages(prev => [...prev, aiMessage]);
+          // Add AI response
+          const aiMessage: Message = {
+            id: crypto.randomUUID(),
+            content: data.response,
+            isUser: false,
+            timestamp: new Date().toISOString(),
+            status: 'sent',
+            type: 'text'
+          };
+          setMessages(prev => [...prev, aiMessage]);
+          setIsLoading(false);
+        }
       }
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -112,7 +168,6 @@ function App() {
       setMessages(prev => prev.map(msg => 
         msg.id === userMessage.id ? { ...msg, status: 'error' } : msg
       ));
-    } finally {
       setIsLoading(false);
     }
   };

@@ -8,18 +8,23 @@ import argparse
 import os
 import sys
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
 import logging
 from logging.handlers import RotatingFileHandler
 import json
 import asyncio
 import time
-import datetime
 from pathlib import Path
+
+# Import app modules
+from app.api import router as api_router
+from app.api.websocket import ConnectionManager
+from app.core.model_manager import ModelManager
+from app.core.personality import PersonalitySystem
+from app.core.memory import MemorySystem
+from app.core.conversation import ConversationEngine
 
 # Configure logging
 log_dir = Path("logs")
@@ -50,44 +55,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# WebSocket connection manager
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-        logger.info(f"New WebSocket connection. Total connections: {len(self.active_connections)}")
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-        logger.info(f"WebSocket disconnected. Remaining connections: {len(self.active_connections)}")
-
-    async def send_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
-
+# Create WebSocket connection manager
 manager = ConnectionManager()
 
-# Models
-class Message(BaseModel):
-    content: str
-    role: str = "user"
-    timestamp: Optional[float] = None
-
-class ChatResponse(BaseModel):
-    message: Message
-    personality: Dict[str, Any] = {}
-    emotion: Dict[str, Any] = {}
-
-# API Router
-from fastapi import APIRouter
-
-api_router = APIRouter(prefix="/api")
+# Create core system instances
+model_manager = ModelManager(
+    ollama_url=os.environ.get("OLLAMA_URL", "http://localhost:11434")
+)
+personality_system = PersonalitySystem(
+    data_dir=os.environ.get("DATA_DIR", "data")
+)
+memory_system = MemorySystem(
+    data_dir=os.environ.get("DATA_DIR", "data")
+)
+conversation_engine = ConversationEngine(
+    model_manager=model_manager,
+    personality_system=personality_system,
+    memory_system=memory_system
+)
 
 # Routes
 @app.get("/")
@@ -97,115 +82,6 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-
-# API Routes
-@api_router.get("/personality/current")
-async def get_personality_current():
-    """
-    Get the current personality state of the AI companion
-    """
-    return {
-        "traits": {
-            "openness": 0.7,
-            "conscientiousness": 0.8,
-            "extraversion": 0.6,
-            "agreeableness": 0.75,
-            "neuroticism": 0.4
-        }
-    }
-
-@api_router.get("/emotions/current")
-async def get_emotions_current():
-    """
-    Get the current emotional state of the AI companion
-    """
-    return {
-        "valence": 0.8,  # Positive
-        "arousal": 0.5,  # Moderate energy
-        "dominance": 0.6  # Moderate confidence
-    }
-
-@api_router.get("/messages")
-async def get_messages():
-    """
-    Get message history
-    """
-    # In a real implementation, this would fetch messages from a database
-    return [
-        {
-            "id": "1",
-            "content": "Hello! How can I help you today?",
-            "isUser": False,
-            "timestamp": (datetime.datetime.now() - datetime.timedelta(hours=1)).isoformat(),
-            "status": "sent"
-        }
-    ]
-
-@api_router.post("/chat")
-async def chat(message: Message):
-    """
-    Process a chat message and return a response
-    """
-    logger.info(f"Received message: {message.content}")
-    
-    # In a real implementation, this would process the message through the AI model
-    # For now, we'll just echo back a simple response
-    
-    # Simulate processing time
-    await asyncio.sleep(1)
-    
-    # Return a response in the format expected by the frontend
-    return {
-        "response": f"I received your message: {message.content}"
-    }
-
-@api_router.post("/images/generate")
-async def generate_image(prompt: Dict[str, str]):
-    """
-    Generate an image based on a text prompt
-    """
-    logger.info(f"Image generation request: {prompt}")
-    
-    # In a real implementation, this would use the image generation model
-    # For now, we'll just return a placeholder response
-    
-    # Placeholder base64 image (1x1 transparent pixel)
-    base64_image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
-    
-    return {
-        "image": base64_image,
-        "prompt": prompt.get("prompt", ""),
-        "generation_time": 1.5,
-        "model": "flux",
-        "metadata": {
-            "negative_prompt": prompt.get("negative_prompt", ""),
-            "num_inference_steps": 30,
-            "guidance_scale": 7.5,
-            "width": 512,
-            "height": 512
-        }
-    }
-
-@api_router.get("/models")
-async def list_models():
-    """
-    List available AI models
-    """
-    # In a real implementation, this would scan the models directory
-    # For now, we'll just return a placeholder response
-    
-    return {
-        "models": [
-            {
-                "id": "llama2",
-                "name": "Llama 2",
-                "type": "chat",
-                "size": "7B",
-                "quantization": "Q4_K_M",
-                "context_length": 4096
-            }
-        ]
-    }
 
 # WebSocket endpoint
 @app.websocket("/ws")
@@ -219,60 +95,93 @@ async def websocket_endpoint(websocket: WebSocket):
             # Parse the incoming message
             try:
                 message_data = json.loads(data)
-                message = Message(**message_data)
+                content = message_data.get("content", "")
+                model_id = message_data.get("model_id")
+                stream = message_data.get("stream", False)
+                temperature = message_data.get("temperature", 0.7)
                 
-                # Process the message (in a real implementation, this would use the AI model)
-                await asyncio.sleep(1)  # Simulate processing time
+                if not content:
+                    await manager.send_message(
+                        {"error": "Message content is required"},
+                        websocket
+                    )
+                    continue
                 
-                # Create a response
-                response = ChatResponse(
-                    message=Message(
-                        content=f"I received your message: {message.content}",
-                        role="assistant",
-                        timestamp=time.time()
-                    ),
-                    personality={
-                        "openness": 0.7,
-                        "conscientiousness": 0.8,
-                        "extraversion": 0.6,
-                        "agreeableness": 0.75,
-                        "neuroticism": 0.4
-                    },
-                    emotion={
-                        "valence": 0.8,  # Positive
-                        "arousal": 0.5,  # Moderate energy
-                        "dominance": 0.6  # Moderate confidence
-                    }
-                )
-                
-                # Send the response
-                await manager.send_message(json.dumps(response.dict()), websocket)
+                # Process the message
+                if stream:
+                    # For streaming responses
+                    response_data = await conversation_engine.process_message(
+                        message=content,
+                        model_id=model_id,
+                        stream=True,
+                        temperature=temperature
+                    )
+                    
+                    # Stream the response
+                    await manager.stream_response(
+                        websocket=websocket,
+                        response_generator=response_data.get("response_generator"),
+                        personality=response_data.get("personality", {}),
+                        emotion=response_data.get("emotion", {})
+                    )
+                else:
+                    # For regular responses
+                    response_data = await conversation_engine.process_message(
+                        message=content,
+                        model_id=model_id,
+                        stream=False,
+                        temperature=temperature
+                    )
+                    
+                    # Send the response
+                    await manager.send_message(
+                        {
+                            "type": "response",
+                            "content": response_data.get("response", ""),
+                            "personality": response_data.get("personality", {}),
+                            "emotion": response_data.get("emotion", {}),
+                            "model_used": response_data.get("model_used", ""),
+                            "processing_time": response_data.get("processing_time", 0)
+                        },
+                        websocket
+                    )
                 
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON received: {data}")
-                await manager.send_message(json.dumps({"error": "Invalid JSON"}), websocket)
+                await manager.send_message({"error": "Invalid JSON"}, websocket)
             except Exception as e:
                 logger.error(f"Error processing message: {str(e)}")
-                await manager.send_message(json.dumps({"error": str(e)}), websocket)
+                await manager.send_message({"error": str(e)}, websocket)
                 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
 # Include the API router
-app.include_router(api_router)
+app.include_router(api_router.router)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="AI Companion Backend Server")
     parser.add_argument("--port", type=int, default=8000, help="Port to run the server on")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to run the server on")
     parser.add_argument("--production", action="store_true", help="Run in production mode")
+    parser.add_argument("--ollama-url", type=str, help="Ollama API URL")
+    parser.add_argument("--data-dir", type=str, help="Data directory")
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
     
+    # Set environment variables from command line arguments
+    if args.ollama_url:
+        os.environ["OLLAMA_URL"] = args.ollama_url
+    
+    if args.data_dir:
+        os.environ["DATA_DIR"] = args.data_dir
+    
     logger.info(f"Starting AI Companion Backend on {args.host}:{args.port}")
     logger.info(f"Production mode: {args.production}")
+    logger.info(f"Ollama URL: {os.environ.get('OLLAMA_URL', 'http://localhost:11434')}")
+    logger.info(f"Data directory: {os.environ.get('DATA_DIR', 'data')}")
     
     # Save the current working directory
     current_dir = os.path.dirname(os.path.abspath(__file__))
