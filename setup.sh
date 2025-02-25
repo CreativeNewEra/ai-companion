@@ -4,7 +4,7 @@
 set -e
 trap 'echo "Error: Setup failed on line $LINENO. Check the error message above."' ERR
 
-echo "Setting up AI Companion..."
+echo "Setting up AI Companion v2.0.0..."
 
 # Function to check version
 check_version() {
@@ -14,7 +14,8 @@ check_version() {
     local name=$4
     
     if ! command -v $cmd &> /dev/null; then
-        echo "$name is required but not installed. Please install $name and try again."
+        echo "❌ $name is required but not installed. Please install $name and try again."
+        echo "   Visit the project README for installation instructions."
         exit 1
     fi
     
@@ -25,21 +26,21 @@ check_version() {
     fi
     
     if [ "$(printf '%s\n' "$min_version" "$current_version" | sort -V | head -n1)" != "$min_version" ]; then
-        echo "$name version $current_version is installed but version $min_version or higher is required."
+        echo "❌ $name version $current_version is installed but version $min_version or higher is required."
         exit 1
     fi
     
-    echo "$name version $current_version found (minimum required: $min_version)"
+    echo "✅ $name version $current_version found (minimum required: $min_version)"
 }
 
-# Check Python version (minimum 3.8)
-check_version "python3" "$(python3 --version 2>&1)" "3.8" "Python"
+# Check Python version (minimum 3.9)
+check_version "python3" "$(python3 --version 2>&1)" "3.9" "Python"
 
-# Check Node.js version (minimum 16.0)
-check_version "node" "$(node --version 2>&1)" "16.0" "Node.js"
+# Check Node.js version (minimum 18.0)
+check_version "node" "$(node --version 2>&1)" "18.0" "Node.js"
 
-# Check npm version (minimum 7.0)
-check_version "npm" "$(npm --version 2>&1)" "7.0" "npm"
+# Check npm version (minimum 8.0)
+check_version "npm" "$(npm --version 2>&1)" "8.0" "npm"
 
 # Check CUDA availability
 echo "Checking CUDA toolkit..."
@@ -126,36 +127,80 @@ if ! ollama list | grep -q "llama2"; then
     exit 1
 fi
 
+# Create necessary directories
+echo "Creating project directories..."
+mkdir -p models/{diffusers,safetensors,checkpoints,gguf}
+mkdir -p data
+mkdir -p logs
+mkdir -p backend/data
+mkdir -p backend/logs
+
+# Set up environment file
+echo "Setting up environment configuration..."
+if [ ! -f "backend/.env" ]; then
+    echo "Creating backend/.env file with default configuration..."
+    cat > backend/.env << EOF
+# Hugging Face token for model access
+HF_AUTH_TOKEN=
+
+# Database and storage paths
+DATABASE_PATH=data/memory.db
+VECTOR_STORE_PATH=data/vector_store
+MODEL_DIR=models
+
+# Logging configuration
+LOG_LEVEL=INFO
+EOF
+    echo "Created backend/.env with default settings"
+    echo "Please edit backend/.env to add your Hugging Face token"
+fi
+
 # Check for Hugging Face token
 echo "Checking Hugging Face token..."
 if [ -f "backend/.env" ]; then
     HF_TOKEN=$(grep "HF_AUTH_TOKEN" backend/.env | cut -d'=' -f2 | tr -d ' ')
     if [ -z "$HF_TOKEN" ]; then
-        echo "Warning: No Hugging Face token found in backend/.env"
+        echo "⚠️ No Hugging Face token found in backend/.env"
         echo "Please add your token to enable image generation:"
         echo "1. Visit https://huggingface.co/settings/tokens to create a token"
         echo "2. Add it to backend/.env as HF_AUTH_TOKEN=your_token"
     else
-        echo "Found Hugging Face token"
+        echo "✅ Found Hugging Face token"
         
         # Pre-download models for image generation
         echo "Pre-downloading image generation models..."
         python3 -c "
 from diffusers import FluxPipeline, StableDiffusionXLPipeline
 import os
+import sys
+from tqdm import tqdm
+
+class TqdmPrinter:
+    def write(self, s):
+        tqdm.write(s, end='')
+
+sys.stdout = TqdmPrinter()
 os.environ['HF_AUTH_TOKEN'] = '$HF_TOKEN'
+
 try:
     print('Downloading Flux model...')
-    FluxPipeline.from_pretrained('aoxo/flux.1dev-abliteratedv2', use_auth_token=True)
+    FluxPipeline.from_pretrained('aoxo/flux.1dev-abliteratedv2', 
+                                use_auth_token=True, 
+                                cache_dir='models/diffusers/flux')
+    
     print('Downloading SDXL model...')
-    StableDiffusionXLPipeline.from_pretrained('stabilityai/stable-diffusion-xl-base-1.0', use_auth_token=True)
-    print('Models downloaded successfully')
+    StableDiffusionXLPipeline.from_pretrained('stabilityai/stable-diffusion-xl-base-1.0', 
+                                             use_auth_token=True,
+                                             cache_dir='models/diffusers/sdxl')
+    
+    print('✅ Models downloaded successfully')
 except Exception as e:
-    print(f'Warning: Failed to download models: {str(e)}')
+    print(f'⚠️ Failed to download models: {str(e)}')
+    print('You can still run the application, but image generation may be limited.')
 "
     fi
 else
-    echo "Warning: backend/.env file not found"
+    echo "⚠️ backend/.env file not found"
 fi
 
 echo "✅ Setup completed successfully!"

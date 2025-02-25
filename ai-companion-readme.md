@@ -7,7 +7,7 @@ A sophisticated AI companion application that creates an emotionally intelligent
 
 ## Overview
 
-AI Companion creates a truly personal digital friend that evolves through natural interactions. Unlike typical chatbots, this companion develops a consistent personality that adapts subtly over time, remembers your conversations in context, and responds with appropriate emotional intelligence. Built with advanced emotional intelligence, dynamic personality traits, and multi-modal capabilities, it provides a genuine companionship experience that goes beyond simple chat interactions. The system learns and adapts to your personality, remembers your conversations, and engages with you in meaningful ways.
+AI Companion creates a truly personal digital friend that evolves through natural interactions. Unlike typical chatbots, this companion develops a consistent personality that adapts subtly over time, remembers your conversations in context, and responds with appropriate emotional intelligence. Built with advanced emotional intelligence, dynamic personality traits, and multi-modal capabilities, it provides a genuine companionship experience that goes beyond simple chat interactions.
 
 ## Core Principles
 
@@ -28,7 +28,6 @@ AI Companion creates a truly personal digital friend that evolves through natura
 - **Natural Conversations**: Fluid transitions between casual chat and deep topics
 - **Genuine Evolution**: Companion develops consistent but evolving identity
 - **Proactive Engagement**: Initiates conversations and suggests topics of interest
-- **Relationship Building**: Tracks relationship development and adapts communication style
 
 ### Multi-Modal Interaction
 - **Natural Conversation**: Human-like dialogue with contextual understanding
@@ -45,20 +44,13 @@ AI Companion creates a truly personal digital friend that evolves through natura
 - **Memory Visualization**: Interactive tools to explore shared experiences
 - **Semantic Search**: Vector-based similarity search for relevant memory retrieval
 
-### Resource Management
+### Technical Features
 - **Local-First Architecture**: Runs entirely on your computer for privacy
 - **Flexible Model Support**: Compatible with multiple model formats (GGUF, Diffusers, Safetensors)
-- **Efficient Resource Allocation**: Smart memory management for optimal performance
+- **Efficient Resource Management**: Smart memory management for optimal performance
 - **Model Switching**: Seamless switching between different AI models
-
-### Modern UI/UX
-- **Real-time Chat**: Responsive interface with typing indicators
-- **Personality Visualization**: Interactive display of companion's traits and mood
-- **Memory Explorer**: Tools to browse and search conversation history
+- **Modern UI**: Responsive interface with real-time updates and typing indicators
 - **Theme Support**: Light and dark mode with customizable themes
-- **Collapsible Sidebar**: Better mobile experience
-- **Fast Development**: Built with Vite and HMR
-- **Type Safety**: Implemented with TypeScript
 
 ## Architecture
 
@@ -75,8 +67,6 @@ ai-companion/
 │   │   ├── core/       # Core AI companion systems
 │   │   │   ├── personality.py  # Personality system
 │   │   │   ├── memory.py       # Memory management
-│   │   │   ├── backends/       # Model backends
-│   │   │   ├── embeddings/     # Embedding models
 │   │   │   └── conversation.py # Conversation engine
 │   │   ├── api/        # API endpoints
 │   │   └── utils/      # Utility functions
@@ -157,6 +147,7 @@ VITE_WS_URL=ws://localhost:8000/ws
 
 ### Start the Backend
 ```bash
+cd backend
 ./start.sh
 ```
 
@@ -205,48 +196,6 @@ Manages the natural flow of interaction:
 - **Prompt Engineering**: Creates rich, detailed prompts for the AI model
 - **Response Generation**: Creates natural-sounding responses with personality
 - **Multi-modal Integration**: Handles text, voice, and visual elements
-
-## Frontend Components
-
-### Core Components
-
-- **ChatWindow**: Main chat interface component
-  - Handles message display and interaction
-  - Manages API communication
-  - Implements auto-scrolling and loading states
-
-- **Sidebar**: Collapsible navigation component
-  - Model selection
-  - Navigation options (Personality, Memory, Settings)
-  - Theme toggle integration
-
-- **MessageInput**: Enhanced input component
-  - Text input with Enter key support
-  - AI suggestions button
-  - Send message functionality
-
-- **EmotionIndicator**: Displays the AI's current emotional state
-- **PersonalityDisplay**: Visualizes companion's personality traits
-- **ImageGenerator**: Handles image generation capabilities
-- **Avatar**: Displays the AI companion's visual representation
-- **ThemeToggle**: Switches between light and dark themes
-
-### Additional Features
-
-- Real-time error handling and notifications
-- Smooth animations and transitions
-- Accessibility support with ARIA labels
-- Responsive design for all screen sizes
-
-### Frontend Development
-
-The project uses several modern tools and libraries:
-
-- **Vite**: For fast development and building
-- **TypeScript**: For type safety
-- **TailwindCSS**: For styling
-- **Framer Motion**: For animations
-- **Lucide React**: For icons
 
 ## Advanced Configuration
 
@@ -424,3 +373,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Diffusers](https://github.com/huggingface/diffusers) for image generation
 - This project builds on research in affective computing and personality psychology
 - Inspiration drawn from concepts of digital companions in science fiction
+
+---
+
+Built with ❤️ by [Your Name/Team]

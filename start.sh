@@ -11,26 +11,149 @@ OLLAMA_PORT=${OLLAMA_PORT:-11434}
 LOG_DIR="logs"
 LOG_FILE="$LOG_DIR/startup.log"
 MODE=${MODE:-development}
+VERBOSE=${VERBOSE:-false}
+MAX_LOG_SIZE_MB=10
+MAX_LOG_FILES=5
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --port=*)
+      FRONTEND_PORT="${1#*=}"
+      shift
+      ;;
+    --backend-port=*)
+      BACKEND_PORT="${1#*=}"
+      shift
+      ;;
+    --mode=*)
+      MODE="${1#*=}"
+      shift
+      ;;
+    --verbose)
+      VERBOSE=true
+      shift
+      ;;
+    --help)
+      echo "Usage: ./start.sh [options]"
+      echo "Options:"
+      echo "  --port=PORT            Set frontend port (default: 5173)"
+      echo "  --backend-port=PORT    Set backend port (default: 8000)"
+      echo "  --mode=MODE            Set mode (development or production, default: development)"
+      echo "  --verbose              Enable verbose logging"
+      echo "  --help                 Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+  esac
+done
 
 # Create logs directory if it doesn't exist
 mkdir -p "$LOG_DIR"
 
+# Log rotation function
+rotate_logs() {
+    if [ -f "$LOG_FILE" ]; then
+        # Get size in MB
+        local size=$(du -m "$LOG_FILE" | cut -f1)
+        if [ "$size" -ge "$MAX_LOG_SIZE_MB" ]; then
+            # Rotate logs
+            for i in $(seq $((MAX_LOG_FILES-1)) -1 1); do
+                if [ -f "$LOG_FILE.$i" ]; then
+                    mv "$LOG_FILE.$i" "$LOG_FILE.$((i+1))"
+                fi
+            done
+            mv "$LOG_FILE" "$LOG_FILE.1"
+        fi
+    fi
+}
+
+# Rotate logs before starting
+rotate_logs
+
 # Initialize log file
-echo "=== Starting application $(date) ===" > "$LOG_FILE"
+echo "=== Starting AI Companion v2.0.0 ($(date)) ===" > "$LOG_FILE"
+echo "=== Mode: $MODE, Frontend: $FRONTEND_PORT, Backend: $BACKEND_PORT ===" >> "$LOG_FILE"
 
 # Logging function
 log() {
-    local message="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-    echo "$message" | tee -a "$LOG_FILE"
+    local level=$1
+    local message=$2
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    # Format with color based on level
+    case $level in
+        "INFO")
+            local colored_level="\033[0;32mINFO\033[0m"
+            ;;
+        "WARN")
+            local colored_level="\033[0;33mWARN\033[0m"
+            ;;
+        "ERROR")
+            local colored_level="\033[0;31mERROR\033[0m"
+            ;;
+        *)
+            local colored_level=$level
+            ;;
+    esac
+    
+    # Log to file always
+    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+    
+    # Log to console with color
+    echo -e "[$timestamp] [$colored_level] $message"
+    
+    # Additional verbose logging
+    if [ "$level" = "DEBUG" ] && [ "$VERBOSE" != "true" ]; then
+        return
+    fi
 }
 
 # Error handling function
 handle_error() {
     local exit_code=$1
     local line_number=$2
-    log "Error on line $line_number: Command exited with status $exit_code"
+    log "ERROR" "Error on line $line_number: Command exited with status $exit_code"
     cleanup
     exit 1
+}
+
+# Log system information
+log_system_info() {
+    log "INFO" "System information:"
+    
+    # OS information
+    if [ -f /etc/os-release ]; then
+        os_name=$(grep -E "^NAME=" /etc/os-release | cut -d= -f2 | tr -d '"')
+        os_version=$(grep -E "^VERSION=" /etc/os-release | cut -d= -f2 | tr -d '"')
+        log "INFO" "OS: $os_name $os_version"
+    fi
+    
+    # CPU information
+    cpu_info=$(grep "model name" /proc/cpuinfo | head -n 1 | cut -d: -f2 | xargs)
+    cpu_cores=$(grep -c "processor" /proc/cpuinfo)
+    log "INFO" "CPU: $cpu_info ($cpu_cores cores)"
+    
+    # Memory information
+    total_mem=$(free -h | awk '/^Mem:/ {print $2}')
+    available_mem=$(free -h | awk '/^Mem:/ {print $7}')
+    log "INFO" "Memory: $available_mem available / $total_mem total"
+    
+    # Disk information
+    disk_space=$(df -h . | awk 'NR==2 {print $4 " available / " $2 " total"}')
+    log "INFO" "Disk space: $disk_space"
+    
+    # GPU information if available
+    if command -v nvidia-smi &> /dev/null; then
+        gpu_info=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -n 1)
+        log "INFO" "GPU: $gpu_info"
+    else
+        log "WARN" "No NVIDIA GPU detected. Image generation will be slower."
+    fi
 }
 
 # Function to check if a process is running on a port
